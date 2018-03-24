@@ -1,0 +1,16 @@
+{
+  "name": "bratrskapomoc.cz",
+  "version": "1.0.0",
+  "description": "Interaktivní mapa obětí ruské okupace Československa v roce 1968",
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {
+    "elm": "^0.18.0",
+    "elm-live": "^2.7.5"
+  },
+  "scripts": {
+    "live": "npx elm-live src/Main.elm --open"
+  },
+  "author": "Tomáš Znamenáček",
+  "license": "MIT"
+}
