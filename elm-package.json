@@ -1,7 +1,7 @@
 {
     "version": "1.0.0",
-    "summary": "Interaktivní mapa obětí ruské okupace Československa v roce 1968",
-    "repository": "https://github.com/user/project.git",
+    "summary": "An interactive map showing the victims of the Russian invasion into Czechoslovakia in 1968",
+    "repository": "https://github.com/zoul/bratrskapomoc.cz",
     "license": "MIT",
     "source-directories": [
         "src"

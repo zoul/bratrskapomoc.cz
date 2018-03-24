@@ -1,7 +1,7 @@
 {
   "name": "bratrskapomoc.cz",
   "version": "1.0.0",
-  "description": "Interaktivní mapa obětí ruské okupace Československa v roce 1968",
+  "description": "An interactive map showing the victims of the Russian invasion into Czechoslovakia in 1968",
   "main": "index.js",
   "dependencies": {},
   "devDependencies": {
