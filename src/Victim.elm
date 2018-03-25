@@ -1,7 +1,8 @@
-module Victim exposing (Victim, parseVictims)
+module Victim exposing (Model(..), Msg, Victim, loadVictims, update)
 
 import Csv exposing (Csv)
 import Csv.Decode exposing (..)
+import Http
 
 
 type alias LatLong =
@@ -18,6 +19,36 @@ type alias Victim =
     , incidentLatLong : Maybe LatLong
     , incidentType : String
     }
+
+
+type Model
+    = Loading
+    | Loaded (List Victim)
+    | Error String
+
+
+type Msg
+    = ReceiveVictims (Result Http.Error String)
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
+update (ReceiveVictims result) _ =
+    case result of
+        Ok data ->
+            case parseVictims data of
+                Just victims ->
+                    ( Loaded victims, Cmd.none )
+
+                Nothing ->
+                    ( Error "CSV parse error", Cmd.none )
+
+        Err e ->
+            ( Error (toString e), Cmd.none )
+
+
+loadVictims : Cmd Msg
+loadVictims =
+    Http.send ReceiveVictims (Http.getString "data/victims.csv")
 
 
 decodeLatLong : String -> Result String LatLong
