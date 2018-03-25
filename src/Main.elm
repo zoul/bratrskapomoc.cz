@@ -45,8 +45,8 @@ initialMap =
             Maps.Geo.latLng 49.5 17
     in
         Maps.defaultModel
-            |> Maps.updateMap (Map.setZoom 6 >> Map.moveTo initialLocation)
             |> Maps.updateMap (Map.setTileServer "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png")
+            |> Maps.updateMap (Map.setZoom 6 >> Map.moveTo initialLocation)
 
 
 showVictimsOnMap : Maps.Model Msg -> Victim.Model -> Maps.Model Msg
