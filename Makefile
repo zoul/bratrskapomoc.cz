@@ -7,4 +7,4 @@ app:
 	elm-make --yes src/Main.elm --output site/index.html
 	cp -R data site
 clean:
-	rm -rf site
+	rm -rf site index.html
