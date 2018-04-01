@@ -1,7 +1,8 @@
 module Main exposing (..)
 
 import Html exposing (Html)
-import Victim exposing (..)
+import Victim exposing (Victim, decodeVictims)
+import Http
 import Maps
 import Maps.Marker as Marker
 import Maps.Map as Map
@@ -13,70 +14,103 @@ main =
         { init = init
         , view = view
         , update = update
-        , subscriptions = subscriptions
+        , subscriptions = (\_ -> Sub.none)
         }
+
+
+
+---
+--- Model
+---
 
 
 type alias Model =
     { map : Maps.Model Msg
-    , victims : Victim.Model
+    , victims : Victims
     }
 
 
-type Msg
-    = VictimMsg Victim.Msg
-    | MapsMsg (Maps.Msg Msg)
-
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Maps.subscriptions model.map
-        |> Sub.map MapsMsg
+type Victims
+    = Loading
+    | Loaded (Result String (List Victim))
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( { map = initialMap, victims = Loading }, Cmd.map VictimMsg loadVictims )
-
-
-initialMap =
     let
+        mapServerUrl =
+            "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
+
         initialLocation =
             Maps.Geo.latLng 49.5 17
+
+        initialMap =
+            Maps.defaultModel
+                |> Maps.updateMap (Map.setTileServer mapServerUrl)
+                |> Maps.updateMap (Map.setZoom 6 >> Map.moveTo initialLocation)
+
+        requestVictims =
+            Http.send ReceiveVictims (Http.getString "data/victims.csv")
     in
-        Maps.defaultModel
-            |> Maps.updateMap (Map.setTileServer "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png")
-            |> Maps.updateMap (Map.setZoom 6 >> Map.moveTo initialLocation)
+        ( { map = initialMap, victims = Loading }, requestVictims )
 
 
-showVictimsOnMap : Maps.Model Msg -> Victim.Model -> Maps.Model Msg
+
+--
+-- Victims
+--
+
+
+receiveVictims : Result Http.Error String -> Result String (List Victim)
+receiveVictims =
+    Result.mapError toString
+        >> Result.andThen decodeVictims
+
+
+showVictimsOnMap : Maps.Model Msg -> Victims -> Maps.Model Msg
 showVictimsOnMap map victims =
     case victims of
-        Loaded victims ->
+        Loaded (Ok victims) ->
             let
-                pins =
-                    victims
-                        |> List.filterMap .incidentLatLong
-                        |> List.map (uncurry Maps.Geo.latLng)
+                setMarkers x =
+                    Maps.updateMarkers (\_ -> x) map
             in
-                Maps.updateMarkers (\_ -> List.map Marker.create pins) map
+                victims
+                    |> List.filterMap .incidentLatLong
+                    |> List.map (uncurry Maps.Geo.latLng)
+                    |> List.map Marker.create
+                    |> setMarkers
 
         _ ->
             map
 
 
+
+--
+-- Update
+--
+
+
+type Msg
+    = ReceiveVictims (Result Http.Error String)
+    | MapsMsg (Maps.Msg Msg)
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        VictimMsg msg ->
+        ReceiveVictims response ->
             let
-                showVictims =
-                    showVictimsOnMap model.map
+                victims =
+                    Loaded (receiveVictims response)
+
+                newMap =
+                    showVictimsOnMap model.map victims
+
+                newModel =
+                    { model | map = newMap, victims = victims }
             in
-                model.victims
-                    |> Victim.update msg
-                    |> Tuple.mapFirst (\v -> { model | victims = v, map = showVictims v })
-                    |> Tuple.mapSecond (Cmd.map VictimMsg)
+                ( newModel, Cmd.none )
 
         MapsMsg msg ->
             model.map
@@ -85,14 +119,20 @@ update msg model =
                 |> Tuple.mapSecond (Cmd.map MapsMsg)
 
 
+
+---
+--- View
+---
+
+
 view : Model -> Html Msg
 view model =
     case model.victims of
         Loading ->
             Html.text "Loading…"
 
-        Error e ->
+        Loaded (Err e) ->
             Html.text ("Error: " ++ e)
 
-        Loaded _ ->
+        Loaded (Ok _) ->
             Maps.view model.map |> Maps.mapView MapsMsg
